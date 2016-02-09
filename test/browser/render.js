@@ -1,9 +1,4 @@
 import { h, render, rerender, Component } from '../../src/preact';
-let { expect } = chai;
-
-/*eslint-env browser, mocha */
-/*global sinon, chai*/
-
 /** @jsx h */
 
 describe('render()', () => {
@@ -113,6 +108,65 @@ describe('render()', () => {
 		proto.addEventListener.restore();
 	});
 
+	it('should add and remove event handlers', () => {
+		let click = sinon.spy(),
+			mousedown = sinon.spy();
+
+		let proto = document.createElement('div').constructor.prototype;
+		sinon.spy(proto, 'addEventListener');
+		sinon.spy(proto, 'removeEventListener');
+
+		function fireEvent(on, type) {
+			let e = document.createEvent('Event');
+			e.initEvent(type);
+			on.dispatchEvent(e);
+		}
+
+		render(<div onClick={ () => click(1) } onMouseDown={ mousedown } />, scratch);
+
+		expect(proto.addEventListener).to.have.been.calledTwice
+			.and.to.have.been.calledWith('click')
+			.and.calledWith('mousedown');
+
+		fireEvent(scratch.childNodes[0], 'click');
+		expect(click).to.have.been.calledOnce
+			.and.calledWith(1);
+
+		proto.addEventListener.reset();
+		click.reset();
+
+		render(<div onClick={ () => click(2) } />, scratch, scratch.firstChild);
+
+		expect(proto.addEventListener).not.to.have.been.called;
+
+		expect(proto.removeEventListener)
+			.to.have.been.calledOnce
+			.and.calledWith('mousedown');
+
+		fireEvent(scratch.childNodes[0], 'click');
+		expect(click).to.have.been.calledOnce
+			.and.to.have.been.calledWith(2);
+
+		fireEvent(scratch.childNodes[0], 'mousedown');
+		expect(mousedown).not.to.have.been.called;
+
+		proto.removeEventListener.reset();
+		click.reset();
+		mousedown.reset();
+
+		render(<div />, scratch, scratch.firstChild);
+
+		expect(proto.removeEventListener)
+			.to.have.been.calledOnce
+			.and.calledWith('click');
+
+		fireEvent(scratch.childNodes[0], 'click');
+		expect(click).not.to.have.been.called;
+
+		proto.addEventListener.restore();
+		proto.removeEventListener.restore();
+	});
+
 	it('should serialize style objects', () => {
 		render(<div style={{
 			color: 'rgb(255, 255, 255)',
@@ -153,6 +207,14 @@ describe('render()', () => {
 		expect(className.split(' '))
 			.to.include.members(['yes1', 'yes2', 'yes3', 'yes4', 'yes5'])
 			.and.not.include.members(['no1', 'no2', 'no3', 'no4', 'no5']);
+	});
+
+	it('should support dangerouslySetInnerHTML', () => {
+		let html = '<b>foo &amp; bar</b>';
+		render(<div dangerouslySetInnerHTML={{ __html: html }} />, scratch);
+
+		expect(scratch.firstChild).to.have.property('innerHTML', html);
+		expect(scratch.innerHTML).to.equal('<div>'+html+'</div>');
 	});
 
 	it('should reconcile mutated DOM attributes', () => {
@@ -229,7 +291,7 @@ describe('render()', () => {
 
 		expect(C3)
 			.to.have.been.calledOnce
-			.and.to.have.been.calledWithExactly(PROPS)
+			.and.to.have.been.calledWith(PROPS)
 			.and.to.have.returned(sinon.match({
 				nodeName: 'div',
 				attributes: PROPS
@@ -253,7 +315,7 @@ describe('render()', () => {
 
 		expect(Outer)
 			.to.have.been.calledOnce
-			.and.to.have.been.calledWithExactly(PROPS)
+			.and.to.have.been.calledWith(PROPS)
 			.and.to.have.returned(sinon.match({
 				nodeName: Inner,
 				attributes: PROPS
@@ -261,7 +323,7 @@ describe('render()', () => {
 
 		expect(Inner)
 			.to.have.been.calledOnce
-			.and.to.have.been.calledWithExactly(PROPS)
+			.and.to.have.been.calledWith(PROPS)
 			.and.to.have.returned(sinon.match({
 				nodeName: 'div',
 				attributes: PROPS,
@@ -303,7 +365,7 @@ describe('render()', () => {
 		expect(Inner).to.have.been.calledTwice;
 
 		expect(Inner.secondCall)
-			.to.have.been.calledWithExactly({ foo:'bar', i:2 })
+			.to.have.been.calledWith({ foo:'bar', i:2 })
 			.and.to.have.returned(sinon.match({
 				attributes: {
 					j: 2,
@@ -321,7 +383,7 @@ describe('render()', () => {
 		expect(Inner).to.have.been.calledThrice;
 
 		expect(Inner.thirdCall)
-			.to.have.been.calledWithExactly({ foo:'bar', i:3 })
+			.to.have.been.calledWith({ foo:'bar', i:3 })
 			.and.to.have.returned(sinon.match({
 				attributes: {
 					j: 3,

@@ -1,5 +1,6 @@
+import { h } from '../../src/preact';
+import VNode from '../../src/vnode';
 import { expect } from 'chai';
-import { h, VNode } from '../../src/preact';
 
 /*eslint-env browser, mocha */
 
